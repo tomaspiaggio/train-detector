@@ -4,7 +4,7 @@ import os
 import sys
 import json
 import math
-import cv, cv2
+import cv2
 import numpy as np
 import copy
 import yaml
@@ -31,7 +31,7 @@ options = parser.parse_args()
 
 
 if not os.path.isdir(options.input_dir):
-    print "input_dir (%s) doesn't exist"
+    print("input_dir (%s) doesn't exist")
     sys.exit(1)
 
 
@@ -52,13 +52,13 @@ def get_box(x1, y1, x2, y2, x3, y3, x4, y4):
     height *= options.zoom_out_percent
     #height += (height * .05)
 
-    #print "Height: %d - %d" % (height1, height2)
+    #print("Height: %d - %d" % (height1, height2))
 
 
-    points = [(x1,y1), (x2,y2), (x3,y3), (x4,y4)]
-    moment = cv.Moments(points)
-    centerx = int(round(moment.m10/moment.m00))
-    centery = int(round(moment.m01/moment.m00))
+    points = cv2.UMat(np.array([(x1,y1), (x2,y2), (x3,y3), (x4,y4)]))
+    moment = cv2.moments(points)
+    centerx = int(round(moment['m10']/moment['m00']))
+    centery = int(round(moment['m01']/moment['m00']))
 
 
     training_aspect = options.plate_width / options.plate_height
@@ -81,9 +81,9 @@ def crop_rect(big_image, x,y,width,height):
     if x >= 0 and y >= 0 and (y+height) < big_height and (x+width) < big_width:
         crop_img = img[y:y+height, x:x+width]
     else:
-        #print "Performing partial crop"
-        #print "x: %d  y: %d  width: %d  height: %d" % (x,y,width,height)
-        #print "big_width: %d  big_height: %d" % (big_width, big_height)
+        #print("Performing partial crop")
+        #print("x: %d  y: %d  width: %d  height: %d" % (x,y,width,height))
+        #print("big_width: %d  big_height: %d" % (big_width, big_height))
         crop_img = np.zeros((height, width, 3), np.uint8)
         cv2.randu(crop_img, (0,0,0), (255,255,255))
 
@@ -104,11 +104,11 @@ def crop_rect(big_image, x,y,width,height):
             offset_y = 0
             height = big_height - y
 
-        #print "offset_x: %d  offset_y: %d, width: %d, height: %d" % (offset_x, offset_y, width, height)
+        #print("offset_x: %d  offset_y: %d, width: %d, height: %d" % (offset_x, offset_y, width, height))
 
         original_crop =  img[y:y+height-1, x:x+width-1]
         (small_image_height, small_image_width, channels) = original_crop.shape
-        #print "Small shape: %dx%d" % (small_image_width, small_image_height)
+        #print("Small shape: %dx%d" % (small_image_width, small_image_height))
         # Draw the small image onto the large image
         crop_img[offset_y:offset_y+small_image_height, offset_x:offset_x+small_image_width] = original_crop
 
@@ -128,21 +128,21 @@ yaml_files.sort()
 for yaml_file in yaml_files:
 
 
-    print "Processing: " + yaml_file + " (" + str(count) + "/" + str(len(yaml_files)) + ")"
+    print("Processing: " + yaml_file + " (" + str(count) + "/" + str(len(yaml_files)) + ")")
     count += 1
 
 
     yaml_path = os.path.join(options.input_dir, yaml_file)
     yaml_without_ext = os.path.splitext(yaml_path)[0]
     with open(yaml_path, 'r') as yf:
-        yaml_obj = yaml.load(yf)
+        yaml_obj = yaml.safe_load(yf)
 
     image = yaml_obj['image_file']
 
     # Skip missing images
     full_image_path = os.path.join(options.input_dir, image)
     if not os.path.isfile(full_image_path):
-        print "Could not find image file %s, skipping" % (full_image_path)
+        print("Could not find image file %s, skipping" % (full_image_path))
         continue
 
 
@@ -163,4 +163,4 @@ for yaml_file in yaml_files:
     out_crop_path = os.path.join(options.out_dir, yaml_without_ext + ".jpg")
     cv2.imwrite(out_crop_path, crop )
 
-print "%d Cropped images are located in %s" % (count-1, options.out_dir)
+print("%d Cropped images are located in %s" % (count-1, options.out_dir))
